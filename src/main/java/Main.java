@@ -7,6 +7,11 @@ import modele.Produit;
 import modele.ProduitAlimentaire;
 import modele.Stock;
 
+import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,9 +22,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException {
+    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, GeneralSecurityException {
         ControllerStock c = new ControllerStock();
-
         try {
             c.chargerStock();
         } catch (Exception e) {
@@ -73,7 +77,24 @@ public class Main {
         }
     }
 
-    private Stock testStock() throws ClassNotFoundException, SQLException {
+    private static void testChiffrement() throws GeneralSecurityException, IOException {
+        // chiffrement
+        Path fichierCle = Path.of("data/aes.key");
+        SecretKey cle;
+        if(Files.exists(fichierCle)) {
+            cle = ChiffrementAES.chargerCle(fichierCle);
+        } else {
+            cle = ChiffrementAES.genererCle();
+            ChiffrementAES.sauvegarderCle(cle, fichierCle);
+        }
+
+        String texte = "identifiant;nom;prenom\n123456;Martin;Julie\n";
+        ChiffrementAES.chiffrer(texte, cle, Path.of("data/clients.enc"));
+
+        System.out.println(ChiffrementAES.dechiffrer(cle, Path.of("clients.enc")));
+    }
+
+    private static Stock testStock() throws ClassNotFoundException, SQLException {
         DAOFactory factory = DAOFactory.getInstance();
         ProduitDAO produitDAO = new ProduitDAOImpl(factory);
 
